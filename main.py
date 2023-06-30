@@ -2,6 +2,9 @@ import torch
 import torch.nn as nn
 import math
 
+
+
+# 
 class SelfAttention(nn.Module):
     def __init__(self, word_embedding_size, number_heads):
         super().__init__()
@@ -23,16 +26,17 @@ class SelfAttention(nn.Module):
         K = self.key(input)
         V = self.value(input)
 
-class FeedForwardNeuralNetwork(nn.Module):
+class AddAndNormalization(nn.Module):
     def __init__(self):
+        super.__init__()
+
+class FeedForwardNeuralNetwork(nn.Module):
+    def __init__(self, dropout_percentage):
         super.__init__()
     
     def forward(self,input):
         pass
 
-class AddAndNormalization(nn.Module):
-    def __init__(self):
-        super.__init__()
 
 
 dimensionality_of_words = 512
@@ -47,9 +51,22 @@ class EncoderLayer(nn.Module):
     def __init__(self, dimensionality_of_words, number_heads, dropout_percentage, feed_forward_neural_network_hidden_layer_amount):
         super.__init__()
         self.multihead_attention = SelfAttention(number_heads = number_heads)
+        self.dropout_one = nn.Dropout(p=dropout_percentage)
         self.add_norm_one = AddAndNormalization()
-        self.feed_forward_neural_network = FeedForwardNeuralNetwork()
+        self.feed_forward_neural_network = FeedForwardNeuralNetwork(dimensionality_of_words=dimensionality_of_words, dropout_percentage = dropout_percentage)
+        self.dropout_two = nn.Dropout(p=dropout_percentage)
         self.add_norm_two = AddAndNormalization()
+
+    def forward(self, input):
+        residual = input
+        multihead_attention_output = self.multihead_attention(input, mask=None)
+        dropout_one_output = self.dropout_one(multihead_attention_output)
+        add_norm_one_output = self.add_norm_one(dropout_one_output + residual)
+        residual = add_norm_one_output
+        feed_forward_neural_network_output = self.feed_forward_neural_network(add_norm_one_output)
+        dropout_two_output = self.dropout_two(feed_forward_neural_network_output)
+        add_norm_two_output = self.add_norm_two(dropout_two_output + residual)
+        return add_norm_two_output
 
 class Encoder(nn.Module):
     def __init__(self, dimensionality_of_words, number_heads, dropout_percentage, batch_size, max_sequence_length, feed_forward_neural_network_hidden_layer_amount, number_of_encoder_layers):
